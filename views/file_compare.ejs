@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>File Comparison</title>
+</head>
+<body>
+    <div id="grid-container">
+        <p id="fileNameLeftEditor"><%= file_a_name %></p>
+        <p id="fileNameRightEditor"><%= file_b_name %></p>
+        <div id="leftEditor">
+        </div>
+        <div id="rightEditor">
+        </div>
+        <div id="match-picker">
+            <div>
+                <button onclick="renderPrevMatch()" class="btn btn-primary" id="prevMatchBtn">Prev</button>
+                <p><span id="currMatchNum"></span> / <span id="totalMatchNum"></span></p>
+                <button onclick="renderNextMatch()" class="btn btn-primary" id="nextMatchBtn">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.7/ace.js" integrity="sha256-C7DTYRJLG+B/VEzHGeoPMw699nsTQYPAXHKXZb+q04E=" crossorigin="anonymous"></script>
+    <style type="text/css" media="screen">
+        #grid-container {
+            display: grid;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 0.5fr 8fr 1fr;
+        }
+
+        #match-picker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            grid-column: 1/-1;
+        }
+
+        #match-picker button {
+            display: inline;
+        }
+
+        #match-picker p {
+            display: inline;
+        }
+
+        #fileNameLeftEditor, #fileNameRightEditor {
+            text-align: center;
+        }
+
+        .ace_highlight-marker {
+            position: absolute; /* without this positions will be erong */
+            background: #abc; /* color */ 
+            z-index: 1000; /* in front of all other markers */ 
+        }
+    </style>
+    <script>
+            const file_a_promise = fetchJSON(`<%- file_a_path %>`);
+            const file_b_promise = fetchJSON(`<%- file_b_path %>`);
+            const file_compare_result_promise = fetchJSON(`<%- file_compare_path %>`);
+
+            let currentMatchIndex;
+            let matching_kgrams;
+            let leftEditor;
+            let rightEditor;
+
+            Promise.all([file_a_promise, file_b_promise, file_compare_result_promise])
+                .then((x) => {
+                    const [file_a, file_b, file_compare_result] = x;
+                    matching_kgrams = file_compare_result.matching_kgrams;
+                    currentMatchIndex = 0;
+
+                    leftEditor = constructEditor("leftEditor");
+                    leftEditor.setValue(file_a, 1);
+                    rightEditor = constructEditor("rightEditor");
+                    rightEditor.setValue(file_b, 1);
+
+                    renderMatch();
+                });
+
+            function renderNextMatch() {
+                currentMatchIndex = (currentMatchIndex + 1) % matching_kgrams.length;
+                renderMatch();
+            }
+
+            function renderPrevMatch() {
+                currentMatchIndex = (currentMatchIndex - 1) % matching_kgrams.length;
+                renderMatch();
+            }
+
+            function renderMatch() {
+                const pair = matching_kgrams[currentMatchIndex];
+                if (pair == null || pair == undefined) {
+                    return;
+                }
+                const [a, b] = pair;
+                highlightKGram(leftEditor, a);
+                highlightKGram(rightEditor, b);
+                jumpToLine(leftEditor, a.starting_line);
+                jumpToLine(rightEditor, b.starting_line);
+                updateCurrentMatchNumber();
+            }
+
+            function updateCurrentMatchNumber() {
+                const matchNum = currentMatchIndex + 1;
+                document.getElementById("currMatchNum").textContent = matchNum;
+                document.getElementById("totalMatchNum").textContent = matching_kgrams.length;
+            }
+
+            function highlightKGram(editor, kgram) {
+                if (editor.__currentMarkerID !== null && editor.__currentMarkerID !== undefined) {
+                    editor.getSession().removeMarker(editor.__currentMarkerID);
+                }
+
+                const range = new ace.Range(
+                    kgram.starting_line,
+                    kgram.starting_index_in_line,
+                    kgram.starting_line + kgram.lines_occupied - 1,
+                    // FIXME
+                    1000);
+                const markerID = editor.getSession().addMarker(range,'ace_highlight-marker', 'background');
+                editor.__currentMarkerID = markerID;
+            }
+
+            function jumpToLine(editor, lineNum) {
+                editor.resize(true);
+                editor.scrollToLine(lineNum, true, true, function () {});
+                editor.gotoLine(lineNum, 0, true);
+            }
+
+            function constructEditor(id) {
+                const editor = ace.edit(id);
+                editor.session.setOption("useWorker", false);
+                editor.setReadOnly(true);
+                return editor;
+            }
+
+            function fetchJSON(url) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url,
+                    }).done(resolve)
+                    .fail(reject);
+                });
+            }
+
+    </script>
+
+</body>
+
+</html>

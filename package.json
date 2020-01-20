@@ -1,0 +1,19 @@
+{
+  "name": "algae-web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "./node_modules/nodemon/bin/nodemon.js index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bull": "^3.12.1",
+    "dockerode": "^3.0.2",
+    "ejs": "^3.0.1",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.2"
+  }
+}

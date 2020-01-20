@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Algae Comparison Summary</title>
+</head>
+<body>
+    <div class="container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">File A</th>
+                    <th scope="col">File B</th>
+                    <th scope="col">Line Match</th>
+                    <th scope="col">View</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% for (let i = 0; i < file_compare_summary.length; i++) {
+                    const file_compare = file_compare_summary[i];
+                %>
+                    <tr>
+                        <th scope="row"><%= i + 1 %></th>
+                        <td><%= file_compare.project_a_file.file_dir %></td>
+                        <td><%= file_compare.project_b_file.file_dir %></td>
+                        <td><%= Math.max(file_compare.project_a_file_line_matches, file_compare.project_b_file_line_matches) %></td>
+                        <td><a href="/file_compare/<%= i %>.json" class="btn btn-primary">View</a></td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+    <script
+        src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <style>
+        td {
+            font-size: 13px;
+        }
+    </style>
+</body>
+</html>
