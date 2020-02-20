@@ -4,9 +4,11 @@ services:
     build: .
     depends_on:
       - redis
+      - algae
     environment:
       - PORT=8080
       - REDIS_URL=redis://redis
+      - ALGAE_IMAGE_NAME=dexterleng/algae@sha256:4297b4e75497dec3aca14b8560d63054cac1ce8e3a42639dc8d82ec296ed1b3d
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
@@ -17,4 +19,6 @@ services:
       - ALLOW_EMPTY_PASSWORD=yes
     expose:
       - 6379
+  algae:
+    image: dexterleng/algae@sha256:4297b4e75497dec3aca14b8560d63054cac1ce8e3a42639dc8d82ec296ed1b3d
 

@@ -4,7 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const imageName = "dexterleng/algae-dev:latest";
+const imageName = process.env.ALGAE_IMAGE_NAME;
 
 class EvaluationService {
     static createConnection() {
