@@ -4,13 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Algae Comparison Summary</title>
+    <title>Home</title>
 </head>
 <body>
     <div class="container">
-        <h1>Upload Projects</h1>
-        <h2>Drop projects (zipped) here.</h2>
-        <div id="drag-drop-area"></div>
+        <h1>Instructions</h1>
+        <ol>
+            <li>Create a folder named "projects" in the static/ directory.</li>
+            <li>
+                Put the projects to be compared in the newly created folder. Note that they should NOT be zipped.
+            </li>
+            <li>
+                Click this button.
+                <button id="compareButton" class="btn btn-primary">Compare Projects</button>
+            </li>
+            <li>
+                Click this button.
+                <a href="/summary/" class="btn btn-primary">View Results</a>
+            </li>
+        </ol>
     </div>
     <script
         src="https://code.jquery.com/jquery-3.4.1.min.js"
@@ -19,35 +31,30 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
-    <link href="https://transloadit.edgly.net/releases/uppy/v1.8.0/uppy.min.css" rel="stylesheet">
-    <script src="https://transloadit.edgly.net/releases/uppy/v1.8.0/uppy.min.js"></script>
- 
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
     <style>
     </style>
+
     <script>
-        var uppy = Uppy.Core({
-        id: 'uppy',
-        autoProceed: false,
-        allowMultipleUploads: true,
-        restrictions: {
-            maxFileSize: null,
-            maxNumberOfFiles: null,
-            minNumberOfFiles: 1,
-            allowedFileTypes: [".zip"]
-        },
-        onBeforeFileAdded: (currentFile, files) => currentFile,
-        onBeforeUpload: (files) => {},
+        async function pollCompareJob(jobID, delayMilli) {
+            const jobStatus = await axios.get(`/compare_progress/${jobID}`);
+            if (jobStatus.data.finishedOn !== null) {
+                onCompareComplete(jobID);
+                return;
+            }
+            setTimeout(() => pollCompareJob(jobID, delayMilli), delayMilli);
+        }
+
+        function onCompareComplete(jobID) {
+            
+        }
+
+        $("#compareButton").click(async () => {
+            const jobResponse = await axios.post("/start_compare");
+            const jobID = jobResponse.data.id;
+            pollCompareJob(jobID, 1000);
         });
-
-        uppy.use(Uppy.Dashboard, {
-          inline: true,
-          target: '#drag-drop-area'
-        })
-        .use(Uppy.Tus, {endpoint: 'https://master.tus.io/files/'});
-
-        uppy.on('complete', (result) => {
-            console.log('Upload complete! We’ve uploaded these files:', result.successful)
-        })
     </script>
 </body>
 </html>

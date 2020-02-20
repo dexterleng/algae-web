@@ -1,0 +1,20 @@
+version: "3"
+services:
+  app:
+    build: .
+    depends_on:
+      - redis
+    environment:
+      - PORT=8080
+      - REDIS_URL=redis://redis
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    ports:
+      - 8080:8080
+  redis:
+    image: redis:alpine3.11 
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    expose:
+      - 6379
+

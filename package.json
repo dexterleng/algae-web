@@ -7,6 +7,9 @@
     "dev": "./node_modules/nodemon/bin/nodemon.js index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "nodemonConfig": {
+    "ignore": ["static/"]
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -14,6 +17,8 @@
     "dockerode": "^3.0.2",
     "ejs": "^3.0.1",
     "express": "^4.17.1",
-    "nodemon": "^2.0.2"
+    "fs-extra": "^8.1.0",
+    "nodemon": "^2.0.2",
+    "tar-fs": "^2.0.0"
   }
 }
