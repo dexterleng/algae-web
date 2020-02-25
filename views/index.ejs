@@ -5,38 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Home</title>
-</head>
-<body>
-    <div class="container">
-        <h1>Instructions</h1>
-        <ol>
-            <li>Create a folder named "projects" in the static/ directory.</li>
-            <li>
-                Put the projects to be compared in the newly created folder. Note that they should NOT be zipped.
-            </li>
-            <li>
-                Click this button.
-                <button id="compareButton" class="btn btn-primary">Compare Projects</button>
-            </li>
-            <li>
-                Click this button.
-                <a href="/summary/" class="btn btn-primary">View Results</a>
-            </li>
-        </ol>
-    </div>
+    <link href="https://transloadit.edgly.net/releases/uppy/v1.9.2/uppy.min.css" rel="stylesheet">
+    <script src="https://transloadit.edgly.net/releases/uppy/v1.9.2/uppy.min.js"></script>
     <script
-        src="https://code.jquery.com/jquery-3.4.1.min.js"
-        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
-        crossorigin="anonymous"></script>
+    src="https://code.jquery.com/jquery-3.4.1.min.js"
+    integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+    crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Submit Projects for comparison.</h1>
+        <form id="project-upload-form">
+            <div class="form-group">
+                <label>Upload projects (in zip format)</label>
+                <label>You may upload a base project named "base.zip". When a base project is provided, code present in the base project will not towards potential piagiarism.</label>
+                <div id="project-upload-area"></div>
+            </div>
+            <div class="form-group">
+              <label for="k-input-field">Length of substrings to be compared:</label>
+              <input type="number" step="1" min="10" class="form-control" id="k-input-field" placeholder="k-value" value="50">
+            </div>
+            <div class="form-group">
+              <label for="w-input-field">w where density = 2/(w + 1):</label>
+              <input type="number" step="1" min="1" class="form-control" id="w-input-field" placeholder="w-value" value="10">
+            </div>
+            <div class="form-group">
+                <label for="m-input-field">Max occurrence before ignore:</label>
+                <input type="number" step="1" min="0" class="form-control" id="m-input-field" value="10">
+            </div>
+            <button id="submitButton" type="submit" class="btn btn-primary">Submit</button>
+        </form>
+
+        <div id="submitted-info" style="display: none;">
+            <h2>Project has been submitted.</h1>
+            <div id="spinner">
+                Evaluating:
+                <div id="spinner" class="spinner-border" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div><br>
+            </div>
+            <a id="view-results-button" href="/summary/" class="btn btn-primary disabled">View Results</a>
+        </div>
+    </div>
 
     <style>
     </style>
 
     <script>
+        const uppy = Uppy.Core({
+                autoProceed: false,
+                allowMultipleUploads: true,
+                restrictions: {
+                    minNumberOfFiles: 2,
+                    allowedFileTypes: [ ".zip" ]
+                }
+            });
+        
+        uppy.use(Uppy.Dashboard, { 
+            inline: true,
+            target: "#project-upload-area",
+            hideUploadButton: true,
+            width: 800,
+            height: 300,
+        });
+
+        uppy.use(Uppy.Form, {
+            target: "#project-upload-form",
+            resultName: 'uppyResult',
+            getMetaFromForm: true,
+            addResultToForm: true,
+            multipleResults: false,
+            submitOnSuccess: false,
+            triggerUploadOnSubmit: true
+        });
+
+        uppy.use(Uppy.XHRUpload, {
+            endpoint: '/upload_zipped_projects/',
+            formData: true,
+            fieldName: "projects[]",
+            bundle: true,
+            submitOnSuccess: false
+        })
+
+        uppy.on('complete', (result) => {
+            $("form").remove();
+            $("#submitted-info").css("display", "block");
+
+            if (result.failed.length > 0 || result.successful.length === 0) {
+                console.log("upload failed");
+                return;
+            }
+
+            const job = result.successful[0].response.body;
+            const jobID = job.id;
+            pollCompareJob(jobID, 1000);
+
+
+        });
+
         async function pollCompareJob(jobID, delayMilli) {
             const jobStatus = await axios.get(`/compare_progress/${jobID}`);
             if (jobStatus.data.finishedOn !== null) {
@@ -47,14 +117,9 @@
         }
 
         function onCompareComplete(jobID) {
-            
+            $("#spinner").remove();
+            $("#view-results-button").removeClass("disabled");
         }
-
-        $("#compareButton").click(async () => {
-            const jobResponse = await axios.post("/start_compare");
-            const jobID = jobResponse.data.id;
-            pollCompareJob(jobID, 1000);
-        });
     </script>
 </body>
 </html>

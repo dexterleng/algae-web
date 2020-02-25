@@ -81,6 +81,58 @@
             Promise.all([file_a_promise, file_b_promise, file_compare_result_promise])
                 .then((x) => {
                     const [file_a, file_b, file_compare_result] = x;
+
+                    file_compare_result.matching_kgrams.sort((file_compare_result_a, file_compare_result_b) => {
+                        const [a1, b1] = file_compare_result_a;
+                        const [a2, b2] = file_compare_result_b;
+
+                        /**
+                         * [
+                         *  ({starting line, starting index in line}, {ssss})
+                         * ]
+                         * */
+
+                        const l_a1_a2 = a1.starting_line - a2.starting_line;
+                        if (l_a1_a2 !== 0) {
+                            return l_a1_a2;
+                        }
+
+                        const li_a1_a2 = a1.starting_index_in_line - a2.starting_index_in_line;
+                        if (li_a1_a2 !== 0) {
+                            return li_a1_a2;
+                        }
+
+                        const l_b1_b2 = b1.starting_index_in_line - b2.starting_index_in_line;
+                        if (l_b1_b2 !== 0) {
+                            return l_b1_b2;
+                        }
+
+                        const li_b1_b2 = b1.starting_index_in_line - b2.starting_index_in_line;
+                        if (li_b1_b2 !== 0) {
+                            return li_b1_b2;
+                        }
+                        return li_b1_b2;
+
+                        // const l_a1_b1 = a1.starting_line - b1.starting_line;
+                        // if (l_a1_b1 !== 0) {
+                        //     return l_a1_b1;
+                        // }
+
+                        // const li_a1_b1 = a1.starting_index_in_line - b1.starting_index_in_line;
+                        // if (li_a1_b1 !== 0) {
+                        //     return li_a1_b1;
+                        // }
+                        
+                        // const l_a2_b2 = a2.starting_line - b2.starting_line;
+                        // if (l_a2_b2 !== 0) {
+                        //     return l_a2_b2;
+                        // }
+                        // const li_a2_b2 = a2.starting_index_in_line - b2.starting_index_in_line;
+                        // return li_a2_b2;
+                    });
+
+                    console.log(file_compare_result.matching_kgrams);
+
                     matching_kgrams = file_compare_result.matching_kgrams;
                     currentMatchIndex = 0;
 

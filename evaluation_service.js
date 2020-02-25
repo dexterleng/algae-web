@@ -45,7 +45,7 @@ class EvaluationService {
         return images.length > 0;
     }
 
-    static createContainer(conn) {
+    static createContainer(conn, env) {
         return conn.createContainer({
             Image: imageName,
             AttachStdin: false,
@@ -54,7 +54,8 @@ class EvaluationService {
             Tty: true,
             Cmd: ['/bin/bash', '-c', 'tail -f /var/log/dmesg'],
             OpenStdin: false,
-            StdinOnce: false
+            StdinOnce: false,
+            Env: env
         });
     }
 

@@ -1,7 +1,10 @@
 const express = require('express');
+const multer = require("multer");
 const path = require('path');
 const fs = require('fs-extra')
 const Queue = require('bull');
+const bodyParser = require('body-parser');
+const unzipper = require("unzipper");
 
 const EvaluationService = require("./evaluation_service");
 const evalServiceConn = EvaluationService.createConnection();
@@ -14,13 +17,29 @@ const compareJobQueue = new Queue("comparison", REDIS_URL);
 
 compareJobQueue.process(async (job, done) => {
 	try {
+		const files = fs.readdirSync("./static/projects/").filter(name => name.endsWith(".zip"));
+		const unzipPromises = files.map(file => new Promise((resolve, reject) => {
+			const newDir = `./static/projects/${file.slice(0, -1 * ".zip".length)}/`;
+			const rs = fs
+				.createReadStream(path.join("./static/projects/", file))
+				.pipe(unzipper.Extract({ path: newDir }))
+				.on("finish", () => {
+					rs.destroy();
+					resolve();
+				});
+		}));
+		await Promise.all(unzipPromises);
+
 		fs.emptyDirSync("./static/compare_results/");
 		fs.rmdirSync("./static/compare_results/");
 
 		console.log("Pulling algae image...");
 		await EvaluationService.pullImage(evalServiceConn);
 		console.log("Image pulled.");
-		const container = await EvaluationService.createContainer(evalServiceConn);
+
+		const { k, w, m } = job.data;
+		const env = [`K=${k}`, `W=${w}`, `M=${m}`];
+		const container = await EvaluationService.createContainer(evalServiceConn, env);
 		console.log("Container created.");
 		await EvaluationService.moveToContainer(container, "./static/projects/", "/usr/src/app/projects/");
 		console.log("Moved projects to container.");
@@ -41,8 +60,37 @@ app.set('view engine', 'ejs');
 // set path for static assets
 app.use('/static', express.static(path.join(__dirname, 'static')));
 
+app.use(bodyParser.urlencoded({ extended: true }));
+
 app.get('/', (req, res) => {
 	res.render('index', { });
+});
+
+const storage = multer.diskStorage({
+	destination: function (req, file, cb) {
+	  	cb(null, './static/projects/');
+	},
+	filename: function (req, file, cb) {
+	  	cb(null, file.originalname)
+	}
+  })
+   
+const upload = multer({ storage: storage });
+
+const clearProjectsFolderMiddleware = (req, res, next) => {
+	fs.emptyDirSync("./static/projects/");
+	fs.rmdirSync("./static/projects/");
+	fs.mkdirSync("./static/projects/");
+	next();
+}
+
+app.post("/upload_zipped_projects", clearProjectsFolderMiddleware, upload.array("projects[]"), async (req, res) => {
+	const job = await compareJobQueue.add({
+		k: req.body["k-input-field"],
+		w: req.body["w-input-field"],
+		m: req.body["m-input-field"]
+	});
+	res.status(201).send(job);
 });
 
 app.get('/summary', (req, res) => {
