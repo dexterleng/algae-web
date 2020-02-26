@@ -1,10 +1,10 @@
 const express = require('express');
 const multer = require("multer");
 const path = require('path');
-const fs = require('fs-extra')
+const fs = require('fs');
+const rimraf = require("rimraf");
 const Queue = require('bull');
 const bodyParser = require('body-parser');
-const unzipper = require("unzipper");
 
 const EvaluationService = require("./evaluation_service");
 const evalServiceConn = EvaluationService.createConnection();
@@ -15,23 +15,21 @@ const REDIS_URL = process.env.REDIS_URL;
 
 const compareJobQueue = new Queue("comparison", REDIS_URL);
 
+const rimrafPromise = (p) => new Promise((resolve, reject) => {
+	rimraf(p, (e) => {
+		if (e) {
+			reject(e);
+			return;
+		}
+		resolve();
+	})
+});
+
 compareJobQueue.process(async (job, done) => {
 	try {
-		const files = fs.readdirSync("./static/projects/").filter(name => name.endsWith(".zip"));
-		const unzipPromises = files.map(file => new Promise((resolve, reject) => {
-			const newDir = `./static/projects/${file.slice(0, -1 * ".zip".length)}/`;
-			const rs = fs
-				.createReadStream(path.join("./static/projects/", file))
-				.pipe(unzipper.Extract({ path: newDir }))
-				.on("finish", () => {
-					rs.destroy();
-					resolve();
-				});
-		}));
-		await Promise.all(unzipPromises);
+		console.log("job started");
 
-		fs.emptyDirSync("./static/compare_results/");
-		fs.rmdirSync("./static/compare_results/");
+		await rimrafPromise("./static/compare_results/");
 
 		console.log("Pulling algae image...");
 		await EvaluationService.pullImage(evalServiceConn);
@@ -49,6 +47,7 @@ compareJobQueue.process(async (job, done) => {
 		console.log("Comparison results have been extracted.");
 		done(null, null);
 	} catch (e) {
+		console.log(e);
 		done(e);
 	}
 });
@@ -77,10 +76,10 @@ const storage = multer.diskStorage({
    
 const upload = multer({ storage: storage });
 
-const clearProjectsFolderMiddleware = (req, res, next) => {
-	fs.emptyDirSync("./static/projects/");
-	fs.rmdirSync("./static/projects/");
-	fs.mkdirSync("./static/projects/");
+const clearProjectsFolderMiddleware = async (req, res, next) => {
+	await rimrafPromise("./static");
+	fs.mkdirSync("./static/");
+	fs.mkdirSync("./static/projects");
 	next();
 }
 
