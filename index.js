@@ -5,6 +5,7 @@ const fs = require('fs');
 const rimraf = require("rimraf");
 const Queue = require('bull');
 const bodyParser = require('body-parser');
+const { exec } = require("child_process");
 
 const EvaluationService = require("./evaluation_service");
 const evalServiceConn = EvaluationService.createConnection();
@@ -29,23 +30,29 @@ compareJobQueue.process(async (job, done) => {
 	try {
 		console.log("job started");
 
-		await rimrafPromise("./static/compare_results/");
+		exec(`cd ./static/projects/; for i in *.zip; do unzip -q -o "$i" -d "\${i%%.zip}"; done`, async (error) => {
+			if (error) {
+				console.log(error);
+			}
 
-		console.log("Pulling algae image...");
-		await EvaluationService.pullImage(evalServiceConn);
-		console.log("Image pulled.");
+			await rimrafPromise("./static/compare_results/");
 
-		const { k, w, m } = job.data;
-		const env = [`K=${k}`, `W=${w}`, `M=${m}`];
-		const container = await EvaluationService.createContainer(evalServiceConn, env);
-		console.log("Container created.");
-		await EvaluationService.moveToContainer(container, "./static/projects/", "/usr/src/app/projects/");
-		console.log("Moved projects to container.");
-		await EvaluationService.startContainerAndWait(container);
-		console.log("Container has started");
-		await EvaluationService.extractFromContainer(container, "/usr/src/app/compare_results/", "./static/");
-		console.log("Comparison results have been extracted.");
-		done(null, null);
+			console.log("Pulling algae image...");
+			await EvaluationService.pullImage(evalServiceConn);
+			console.log("Image pulled.");
+	
+			const { k, w, m } = job.data;
+			const env = [`K=${k}`, `W=${w}`, `M=${m}`];
+			const container = await EvaluationService.createContainer(evalServiceConn, env);
+			console.log("Container created.");
+			await EvaluationService.moveToContainer(container, "./static/projects/", "/usr/src/app/projects/");
+			console.log("Moved projects to container.");
+			await EvaluationService.startContainerAndWait(container);
+			console.log("Container has started");
+			await EvaluationService.extractFromContainer(container, "/usr/src/app/compare_results/", "./static/");
+			console.log("Comparison results have been extracted.");
+			done(null, null);
+		});
 	} catch (e) {
 		console.log(e);
 		done(e);
@@ -82,6 +89,7 @@ const clearProjectsFolderMiddleware = async (req, res, next) => {
 	fs.mkdirSync("./static/projects");
 	next();
 }
+
 
 app.post("/upload_zipped_projects", clearProjectsFolderMiddleware, upload.array("projects[]"), async (req, res) => {
 	const job = await compareJobQueue.add({

@@ -8,7 +8,7 @@ services:
     environment:
       - PORT=8080
       - REDIS_URL=redis://redis
-      - ALGAE_IMAGE_NAME=dexterleng/algae@sha256:496d07ea797ef5a49c27a8ae0419474a65389e499f601210688a46f32beff224
+      - ALGAE_IMAGE_NAME=dexterleng/algae@sha256:d28c1d01b5b3aee32a06935a774c507c0df8f5c04e4a3f3ac01834cadf8f9812
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./:/usr/src/app
@@ -21,5 +21,5 @@ services:
     expose:
       - 6379
   algae:
-    image: dexterleng/algae@sha256:496d07ea797ef5a49c27a8ae0419474a65389e499f601210688a46f32beff224
+    image: dexterleng/algae@sha256:d28c1d01b5b3aee32a06935a774c507c0df8f5c04e4a3f3ac01834cadf8f9812
 
