@@ -116,6 +116,17 @@ app.get('/file_compare/:file_compare_filename', (req, res) => {
 	res.render('file_compare', { file_a_path, file_b_path, file_a_name, file_b_name, file_compare_path });
 });
 
+app.get('/file_compare-two/:file_compare_filename', (req, res) => {
+	const file_compare_path = `/static/compare_results/${req.params.file_compare_filename}`;
+	const file_compare_file = JSON.parse(fs.readFileSync("." + file_compare_path, "utf8"));
+	const file_a_name = file_compare_file.project_a_file.file_dir;
+	const file_b_name = file_compare_file.project_b_file.file_dir;
+	const file_a_path = path.join("/static/projects/", file_a_name);
+	const file_b_path = path.join("/static/projects/", file_b_name);
+	
+	res.render('file_compare-two', { file_a_path, file_b_path, file_a_name, file_b_name, file_compare_path });
+});
+
 app.post('/start_compare', async (req, res) => {
 	if (!fs.existsSync("./static/projects/")) {
 		res.status(400).send();

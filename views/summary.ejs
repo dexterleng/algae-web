@@ -27,7 +27,10 @@
                         <td><%= file_compare.project_a_file.file_dir %></td>
                         <td><%= file_compare.project_b_file.file_dir %></td>
                         <td><%= Math.max(file_compare.project_a_file_line_matches, file_compare.project_b_file_line_matches) %></td>
-                        <td><a href="/file_compare/<%= i %>.json" class="btn btn-primary">View</a></td>
+                        <td>
+                            <a href="/file_compare/<%= i %>.json" class="btn btn-primary">View</a>
+                            <a style="margin-top: 5px;" href="/file_compare-two/<%= i %>.json" class="btn btn-primary">View 2</a>
+                        </td>
                     </tr>
                 <% } %>
             </tbody>
