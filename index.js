@@ -28,12 +28,17 @@ const rimrafPromise = (p) => new Promise((resolve, reject) => {
 
 compareJobQueue.process(async (job, done) => {
 	try {
+		var unzipStart = new Date();
+
 		console.log("job started");
 
-		exec(`cd ./static/projects/; for i in *.zip; do unzip -q -o "$i" -d "\${i%%.zip}"; done`, async (error) => {
+		exec(`cd ./static/projects/; for i in *.zip; do unzip -q -o "$i" -d "\${i%%.zip}" -x */node_modules/*; done`, async (error) => {
 			if (error) {
 				console.log(error);
 			}
+
+			var unzipTime = new Date() - unzipStart;
+			console.info('Unzip execution time: %dms', unzipTime);
 
 			await rimrafPromise("./static/compare_results/");
 
@@ -44,13 +49,23 @@ compareJobQueue.process(async (job, done) => {
 			const { k, w, m } = job.data;
 			const env = [`K=${k}`, `W=${w}`, `M=${m}`];
 			const container = await EvaluationService.createContainer(evalServiceConn, env);
-			console.log("Container created.");
+
+			var moveStart = new Date();
 			await EvaluationService.moveToContainer(container, "./static/projects/", "/usr/src/app/projects/");
-			console.log("Moved projects to container.");
+			const moveTime = new Date() - moveStart;
+			console.info('Moving execution time: %dms', moveTime);
+
+			const evaluationStart = new Date();
 			await EvaluationService.startContainerAndWait(container);
-			console.log("Container has started");
+			const evaluationTime = new Date() - evaluationStart;
+			console.info('Evaluation execution time: %dms', evaluationTime);
+
+
+			const extractionStart = new Date();
 			await EvaluationService.extractFromContainer(container, "/usr/src/app/compare_results/", "./static/");
-			console.log("Comparison results have been extracted.");
+			const extractionTime = new Date() - extractionStart;
+			console.info('Extraction execution time: %dms', extractionTime);
+
 			done(null, null);
 		});
 	} catch (e) {
